@@ -73,6 +73,22 @@ class GameUI:
         self.status_label = ttk.Label(main_frame, text="Game Status: Setting Up...", font=('Arial', 12, 'bold'))
         self.status_label.grid(row=0, column=0, columnspan=2, pady=10)
 
+            # --- NEW: Player Status Area ---
+        player_status_frame = ttk.Frame(main_frame)
+        player_status_frame.grid(row=1, column=0, columnspan=2, pady=5, sticky="ew")
+
+        # Frame for Player 1 (Ash Ketchum)
+        self.ash_frame = ttk.LabelFrame(player_status_frame, text=self.game.player1.name, padding="10")
+        self.ash_frame.pack(side="left", expand=True, fill="both", padx=10)
+        self.ash_score_label = ttk.Label(self.ash_frame, text=f"Score: {self.game.player1.score}")
+        self.ash_score_label.pack()
+
+        # Frame for Player 2 (Nurse Joy)
+        self.joy_frame = ttk.LabelFrame(player_status_frame, text=self.game.player2.name, padding="10")
+        self.joy_frame.pack(side="right", expand=True, fill="both", padx=10)
+        self.joy_score_label = ttk.Label(self.joy_frame, text=f"Score: {self.game.player2.score}")
+        self.joy_score_label.pack()
+        
         # --- Discard/Wall Area (Center) ---
         center_frame = ttk.LabelFrame(main_frame, text="Draw Pile / Discards", padding="10")
         center_frame.grid(row=1, column=0, columnspan=2, pady=10, sticky="ew")
@@ -100,35 +116,52 @@ class GameUI:
         current_player = self.game.current_player
         
         # 1. Update Status Label
-        status_text = f"Current Turn: {current_player.name} | Tiles Left: {len(self.game.draw_pile)}"
+        status_text = f"Tiles Left: {len(self.game.draw_pile)}"
         if self.game.game_over:
              status_text = f"GAME OVER! Winner: {self.game.winner.name if self.game.winner else 'None'}"
         self.status_label.config(text=status_text)
         
         # 2. Update Draw/Discard Area
-        self.wall_label.config(text=f"Wall: {len(self.game.draw_pile)} tiles")
-        last_discard = self.game.discard_pile[-1] if self.game.discard_pile else "None"
-        self.discard_label.config(text=f"Last Discard: {last_discard}")
-        
-        # 3. Redraw Player Hand
+        self.ash_frame.config(borderwidth=2, relief="groove", text=self.game.player1.name)
+        self.joy_frame.config(borderwidth=2, relief="groove", text=self.game.player1.name)
+
+        # Determine which player is which for score updates
+        player1 = self.game.player1
+        player2 = self.game.player2
+
+        self.ash_score_label.config(text=f"Score: {player1.score}")
+        self.joy_score_label.config(text=f"Score: {player2.score}")
+
+        # Apply highlight to the current player
+        if current_player == player1:
+            self.ash_frame.config(relief="solid", borderwidth=4, text=f"{player1.name} (YOUR TURN ➡️)")
+        else:
+            self.joy_frame.config(relief="solid", borderwidth=4, text=f"{player2.name} (YOUR TURN ➡️)")
+
+        # 3. Redraw Player Hand -> Clear old tiles and reset selections
         for widget in self.hand_frame.winfo_children():
             widget.destroy()
         self.selected_indices = []
 
         hand = current_player.hand
+        self.hand_frame.config(text=f"{current_player.name}'s Hand ({len(hand)} tiles)")
+
         for i, tile in enumerate(hand):
             image = self.get_tile_image(tile, is_exposed=True)
-            
-            tile_label = ttk.Label(self.hand_frame, image=image, relief="raised", borderwidth=1)
-            tile_label.grid(row=0, column=i, padx=2)
-            
-            # Bind click event to select/deselect the tile
-            tile_label.bind("<Button-1>", lambda event, index=i, label=tile_label: self._toggle_selection(index, label))
 
-        # 4. Display Melds (Simplified)
+            tile_label = ttk.Label(self.hand_frame, image=image, borderwidth=2, relief="raised")
+            tile_label.grid(row=0, column=i, padx=5, pady=5)
+
+            tile_label.bind("<Button-1>", lambda event, index=i, lbl=tile_label: self._toggle_selection(index, lbl))
+
+        # 4. Display Melds 
+        meld_text_parts = []
+        for meld in current_player.melds:
+            meld_names = ", ".join([t.name for t in meld])
+            meld_text_parts.append(f"[{meld_names}]")
+
         meld_text = "Melds: " + " | ".join([f"{[t.name for t in meld]}" for meld in current_player.melds])
         ttk.Label(self.hand_frame, text=meld_text).grid(row=1, column=0, columnspan=len(hand), pady=5)
-
 
     def _toggle_selection(self, index: int, label: ttk.Label):
         """Handles tile selection for meld/discard actions."""

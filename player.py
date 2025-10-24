@@ -105,6 +105,11 @@ class Player:
                     break
         
         self.melds.append(new_meld)
-        self.score += sum(t.points for t in new_meld)
         self.sort_hand()
-        print(f"** {self.name} called {meld_type} on {claimed_tile} **")
+
+        meld_points = sum(t.points for t in new_meld)
+        if meld_type == 'KONG':
+            meld_points *= 2  # bonus points
+
+        self.score += meld_points
+        print(f"** {self.name} called {meld_type} on {claimed_tile} - Gained {meld_points} points **")

@@ -154,6 +154,10 @@ class PokeJongGame:
         if _check_recursive(tile_counts, has_pair=False):
             self.game_over = True
             self.winner = player
+
+            winning_tile = claimed_tile if claimed_tile else player.hand[-1]
+            win_type = 'Ron' if claimed_tile else 'Tsumo'
+            self.calculate_win_score(player, winning_tile, win_type)
             return True
         
         return False
@@ -237,6 +241,46 @@ class PokeJongGame:
         
         return False
     
+    def calculate_win_score(self, winner: Player, winning_title: PokemonTile, win_type: str):
+        """Calculate the final score for the winning player.
+        
+        Args:
+            winner: The Player who won.
+            winning_title: The 14th tile that completed the win.
+            win_type: 'Tsumo' or 'Ron'"""
+        
+        # 1. Base Score (Points from all tiles, including the winning tile)
+        base_points = sum(t.points for t in winner.hand) # Hand is the remaining 13 tiles after melds
+        base_points += sum(sum(t.points for t in meld) for meld in winner.melds)
+        base_points += winning_tile.points
+
+        # 2. Add Win Bonus (Simplified Fan/Yaku)
+        win_bonus = 0
+
+        # Check for a "Pung-Heavy Hand" (Toitoi or All Pungs) - if 4 melds are already Pungs/Kongs
+        if len(winner.melds) == 4 and all(len(meld) == 3 or len(meld) == 4 for meld in winner.melds):
+            win_bonus += 50 
+            print(f"[{winner.name}] Awarded 50 bonus points for All Pungs hand.")
+
+        # 3. Apply Win Type Multiplier
+        if win_type == 'Tsumo':
+            # Tsumo is generally more valuable as the winner takes all the points from the opponent.
+            final_score = (base_points + win_bonus) * 2
+            print(f"[{winner.name}] Tsumo Win Multiplier applied (x2).")
+        else: # Ron
+            # Ron is simpler; the winner takes the points from the discarder (or everyone in complex systems).
+            final_score = (base_points + win_bonus) * 1.5 
+            print(f"[{winner.name}] Ron Win Multiplier applied (x1.5).")
+
+        # 4. Update Score
+        winner.score += int(final_score)
+        print(f"\n--- WINNER SCORE ---")
+        print(f"Winner: {winner.name} | Win Type: {win_type}")
+        print(f"Base Points: {base_points} | Final Score Gained: {int(final_score)}")
+        print(f"New Total Score: {winner.score}")
+        print("--------------------")
+
+
     def show_game_state(self):
         """Display the current game state."""
         print("\n" + "="*60)
