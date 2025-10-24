@@ -47,7 +47,9 @@ class Player:
         """
         try:
             if 0 <= tile_index < len(self.hand):
-                return self.hand.pop(tile_index)
+                discarded_tile = self.hand.pop(tile_index)
+                self.discards.append(discarded_tile)
+                return discarded_tile
             else:
                 return None
         except Exception as e:

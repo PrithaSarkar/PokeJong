@@ -20,7 +20,7 @@ def start_gui():
     try:
         # Set up the game and fetch initial Pokémon data
         # num_pokemon set to low for faster initial load
-        game.setup_game(num_pokemon=15) 
+        game.setup_game(num_pokemon=50) 
         
         # Player 1 (Dealer) draws the 14th tile to start the game
         game.draw_tile() 

@@ -243,11 +243,45 @@ class GameUI:
             print("Discard failed.")
 
     def _show_opponent_discards(self):
-        """Placeholder for showing the other player's discards/melds."""
+        """Creates a simple window to display the opponent's discarded tiles."""
         opponent = self.game.other_player
-        print(f"\n--- {opponent.name}'s Status ---")
-        print(f"Discards: {opponent.discards}")
-        print(f"Melds: {opponent.melds}")
+
+        # 1. Create the top-level dialog window
+        dialog = tk.Toplevel(self.master)
+        dialog.title(f"{opponent.name}'s Discard and Exposed Tiles")
+
+        main_frame = ttk.Frame(dialog, padding="10")
+        main_frame.pack(fill='both', expand=True)
+
+        # 2. Display Discards
+        ttk.Label(main_frame, text=f"--- {opponent.name}'s Discard Pile ---", font=('Arial', 12, 'bold')).pack(pady=5)
+
+        discard_frame = ttk.Frame(main_frame)
+        discard_frame.pack(pady=5)
+
+        if not opponent.discards:
+            ttk.Label(discard_frame, text="No tiles discarded yet.").pack()
+        else:
+            # Display the discarded tiles visually
+            for i, tile in enumerate(opponent.discards):
+                image = self.get_tile_image(tile, is_exposed=True)
+                tile_label = ttk.Label(discard_frame, image=image, relief="flat", borderwidth=0)
+                tile_label.grid(row=0, column=i, padx=1)
+                self.tile_images[f'discard_opp_{i}'] = image 
+
+        # 3. Display Exposed Melds
+        meld_display_text = f"\n--- Exposed Melds --- \n{opponent.show_melds()}"
+        ttk.Label(main_frame, text=meld_display_text).pack(pady=10)
+
+        if self.game.discard_pile:
+            ttk.Label(main_frame, text=f"---Last Discarded Tile---").pack(pady=5)
+            central_discard = self.game.discard_pile[-1]
+            image = self.get_tile_image(central_discard, is_exposed = True)
+            ttk.Label(main_frame, image=image, relief="flat", borderwidth=0).pack()
+            self.tile_images["central_discard_ref"] = image
+
+        # Close button
+        ttk.Button(main_frame, text="Close", command=dialog.destroy).pack(pady=10)
 
     def _game_over_ui(self):
         """Displays game over message."""
