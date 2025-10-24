@@ -3,9 +3,42 @@ Main game module for PokeJong.
 Handles game state, rules, and turn-based gameplay.
 """
 
-from typing import List, Optional
+from typing import Dict, List, Optional
 from pokemon_tile import PokemonTile, PokemonTileFactory
 from player import Player
+from collections import Counter
+
+def get_tile__counts(tiles: List[PokemonTile]) -> Dict[int, int]:
+        """Converts a list of PokemonTile objects into a frequency map using pokemon_id"""
+        return Counter(tile.pokemon_id for tile in tiles)
+    
+def _check_recursive(counts: Dict[int, int], has_pair: bool) -> bool:
+    """Recursive function to check for 4 Melds (Pung/Kong) + 1 Pair in tile counts."""
+    # Base Case 1: All the tiles have been consumed and a pair has been found = WIN!!
+    if all(count == 0 for count in counts.values()):
+        return has_pair
+    
+    # Find the next tile ID to process (smallest ID with count > 0)
+    current_tile_id = min((tile_id for tile_id, count in counts.items() if count > 0), default = None)
+    if current_tile_id is None:
+        return False
+    
+    original_count = counts[current_tile_id]
+    # Try to form the PAIR / THE EYE
+    if not has_pair and original_count >= 2:
+        test_counts = counts.copy()
+        test_counts[current_tile_id] -= 2
+        if _check_recursive(test_counts, has_pair=True):
+            return True
+        
+    # Try to form a PUNG (Triplet: 3 identical tiles)
+    if original_count >= 3:
+        test_counts = counts.copy()
+        test_counts[current_tile_id] -= 3
+        if _check_recursive(test_counts, has_pair):
+            return True
+        
+    return False
 
 
 class PokeJongGame:
@@ -66,7 +99,8 @@ class PokeJongGame:
         self.current_player.draw_tile(tile)
         print(f"{self.current_player.name} drew: {tile}")
         return True
-    
+
+
     def discard_tile(self, tile_index: int) -> bool:
         """
         Current player discards a tile.
@@ -96,20 +130,93 @@ class PokeJongGame:
         """
         return self.current_player.form_meld(tile_indices)
     
-    def check_win_condition(self) -> bool:
+    def check_win_condition(self, player: Optional[Player]=None, claimed_tile: Optional[PokemonTile] = None) -> bool:
         """
-        Check if the current player has won.
-        Win condition: Form 4 melds (12 tiles) + 1 tile remaining = complete hand
+        Check if the specified player has a winning hand (4 Melds + 1 Pair).
         
-        Returns:
-            True if player has won
+        If claimed_tile is provided, it's a Ron check (13 tiles in hand + claimed tile).
+        If not, it's a Tsumo check (14 tiles in hand).
         """
-        if len(self.current_player.melds) >= 4 and len(self.current_player.hand) == 1:
+        player = player or self.current_player
+
+        tiles_to_check = player.hand.copy()
+        for meld in player.melds:
+            tiles_to_check.extend(meld)
+
+        if claimed_tile:
+            tiles_to_check.append(claimed_tile)
+
+        if len(tiles_to_check) != 14:
+            return False
+        
+        tile_counts = get_tile__counts(tiles_to_check)
+
+        if _check_recursive(tile_counts, has_pair=False):
             self.game_over = True
-            self.winner = self.current_player
+            self.winner = player
             return True
+        
         return False
     
+    def check_opponent_action(self, discarded_tile: PokemonTile) -> bool:
+        """Checks if other_player can call Ron (Win) or Pung/ Kong
+        
+        Priority : Ron > Pung > Kong.
+
+        Returns:
+            True if action (win or meld) was taken, False otherwise.
+        """
+        opponent = self.other_player
+
+        # Check for Ron (Win)
+        if self.check_win_condition(player=opponent, claimed_tile=discarded_tile):
+            print(f"{opponent.name} calls RON on {discarded_tile} and wins the game!")
+            return True # GAME OVER
+        
+        # Check for Pung (3 identical tiles)
+        hand_counts = get_tile__counts(opponent.hand)
+        discard_id = discarded_tile.pokemon_id
+        current_count = hand_counts.get(discard_id, 0)
+
+        if current_count >= 2:
+            # Player can call PUNG (2 matching in hand) or KONG (3 matching in hand)
+            call_type = 'KONG' if current_count == 3 else 'PUNG'
+
+            # Find the actual tile objects from the hand
+            supporting_tiles = [t for t in opponent.hand if t.pokemon_id == discard_id][:current_count]
+
+            print(f"\n📢 {opponent.name} can call {call_type} on {discarded_tile}. (Y/N)")
+
+            # --- SIMPLIFIED AUTO-CALL LOGIC (REPLACE WITH UI INPUT LATER) ---
+            # For now, we'll auto-call Pung/Kong
+            if True: 
+                opponent.claim_meld(discarded_tile, supporting_tiles, call_type)
+                
+                # The tile is removed from the discard pile (now in meld)
+                self.discard_pile.pop() 
+                
+                # Switch turn to the meld caller (opponent) to discard
+                self.switch_turn() 
+                
+                print(f"** Turn now passes to {opponent.name} to discard. **")
+                return True
+
+        return False # No action taken, continue normal turn flow
+
+    def run_game_loop(self):
+        """The main loop, running until the game ends."""
+        while not self.game_over:
+
+            if self.check_win_condition(player=self.current_player):
+                print(f"{self.current_player.name} calls TSUMO and wins the game!")
+                return #GAME IS OVER
+            
+            if not self.draw_tile():
+                self.check_draw_condition()
+                continue
+
+            self.show_game_state()
+
     def check_draw_condition(self) -> bool:
         """
         Check if the game ends in a draw (no more tiles to draw).
@@ -127,6 +234,7 @@ class PokeJongGame:
             else:
                 self.winner = None  # Tie
             return True
+        
         return False
     
     def show_game_state(self):

@@ -5,7 +5,7 @@ Handles fetching Pokemon data from PokeAPI and creating tiles.
 
 import requests
 import random
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 class PokemonTile:
@@ -23,9 +23,10 @@ class PokemonTile:
         self.pokemon_id = pokemon_id
         self.name = name.capitalize()
         self.points = points
+        self.image_url = "https://unpkg.com/pokeapi-sprites@2.0.2/sprites/pokemon/other/dream-world/"
     
     def __repr__(self):
-        return f"[{self.name}:{self.points}pts]"
+        return f"[{self.name} #{self.pokemon_id}:{self.points}pts]"
     
     def __eq__(self, other):
         if not isinstance(other, PokemonTile):
@@ -39,7 +40,7 @@ class PokemonTileFactory:
     BASE_URL = "https://pokeapi.co/api/v2/pokemon"
     
     @staticmethod
-    def fetch_pokemon(pokemon_id: int) -> Dict:
+    def fetch_pokemon(pokemon_id: int) -> Optional[Dict]:
         """
         Fetch Pokemon data from PokeAPI.
         
@@ -74,9 +75,11 @@ class PokemonTileFactory:
             # Assign points based on Pokemon ID (arbitrary rule for game balance)
             # Lower ID Pokemon (1-50) get 5 points, higher ID (51+) get 10 points
             points = 5 if pokemon_id <= 50 else 10
+            image_url = data['sprites']['other']['official-artwork']['front_default']
             return PokemonTile(pokemon_id, name, points)
         else:
             # Fallback if API fails
+            FALLBACK_URL = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png"
             return PokemonTile(pokemon_id, f"Pokemon{pokemon_id}", 5)
     
     @staticmethod
