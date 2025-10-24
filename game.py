@@ -8,7 +8,7 @@ from pokemon_tile import PokemonTile, PokemonTileFactory
 from player import Player
 from collections import Counter
 
-def get_tile__counts(tiles: List[PokemonTile]) -> Dict[int, int]:
+def get_tile_counts(tiles: List[PokemonTile]) -> Dict[int, int]:
         """Converts a list of PokemonTile objects into a frequency map using pokemon_id"""
         return Counter(tile.pokemon_id for tile in tiles)
     
@@ -149,7 +149,7 @@ class PokeJongGame:
         if len(tiles_to_check) != 14:
             return False
         
-        tile_counts = get_tile__counts(tiles_to_check)
+        tile_counts = get_tile_counts(tiles_to_check)
 
         if _check_recursive(tile_counts, has_pair=False):
             self.game_over = True
@@ -178,7 +178,7 @@ class PokeJongGame:
             return True # GAME OVER
         
         # Check for Pung (3 identical tiles)
-        hand_counts = get_tile__counts(opponent.hand)
+        hand_counts = get_tile_counts(opponent.hand)
         discard_id = discarded_tile.pokemon_id
         current_count = hand_counts.get(discard_id, 0)
 
@@ -241,7 +241,7 @@ class PokeJongGame:
         
         return False
     
-    def calculate_win_score(self, winner: Player, winning_title: PokemonTile, win_type: str):
+    def calculate_win_score(self, winner: Player, winning_tile: PokemonTile, win_type: str):
         """Calculate the final score for the winning player.
         
         Args:
