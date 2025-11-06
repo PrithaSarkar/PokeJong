@@ -19,8 +19,8 @@ def demo_game():
     
     # Create a simplified demo with pre-made tiles
     print("Creating players and tiles...")
-    player1 = Player("Alice", 1)
-    player2 = Player("Bob", 2)
+    player1 = Player("Player 1", 1)
+    player2 = Player("Player 2", 2)
     
     # Create some Pokemon tiles manually for the demo
     pikachu = PokemonTile(25, "Pikachu", 5)
@@ -42,7 +42,7 @@ def demo_game():
     # Player 1 forms a meld
     print("\n--- Player 1's Turn ---")
     print(f"{player1.name} notices they have 3 matching Pikachu tiles!")
-    print("Forming a meld with tiles at indices 0, 1, 2...")
+    print("Forming a meld with tiles")
     
     if player1.form_meld([0, 1, 2]):
         print("✓ Meld formed successfully!")
@@ -54,7 +54,7 @@ def demo_game():
     # Player 2 forms a meld
     print("\n--- Player 2's Turn ---")
     print(f"{player2.name} has 3 matching Squirtle tiles!")
-    print("Forming a meld with tiles at indices 0, 1, 2...")
+    print("Forming a meld with tiles")
     
     if player2.form_meld([0, 1, 2]):
         print("✓ Meld formed successfully!")
